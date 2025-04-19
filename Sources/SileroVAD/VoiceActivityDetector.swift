@@ -375,3 +375,39 @@ public extension VoiceActivityDetector {
     
     
 }
+
+public extension VoiceActivityDetector {
+
+    /// Detect voice activity from a raw float array representing audio.
+    /// - Parameters:
+    ///   - floatArray: An array of floats representing the audio signal.
+    ///   - sampleRate: The sample rate of the audio signal.
+    ///   - windowSampleNums: The number of samples to include in each analysis window.
+    /// - Returns: An array of `VADResult` objects indicating detected voice activity.
+  func detect(fromFloatArray floatArray: [Float],
+              sampleRate: Double,
+              windowSampleNums: Int = 512) -> [VADResult]? {
+    guard let modelHandler = _modelHandler else {
+      print("Model is not initialized")
+      return nil
+    }
+
+    // Ensure the sample rate is as expected
+    guard sampleRate == expectedFormat!.sampleRate else {
+      print("Unexpected sample rate. Expected \(expectedFormat!.sampleRate), got \(sampleRate).")
+      return nil
+    }
+
+    let data = floatArray.withUnsafeBufferPointer {
+      Data(buffer: $0)
+    }
+
+    modelHandler.resetState()
+
+    let score = modelHandler.prediction(x: data, sr: Int64(sampleRate))
+
+    let vadResult = VADResult(score: score, start: 0, end: floatArray.count - 1)
+
+    return [vadResult]
+  }
+}
